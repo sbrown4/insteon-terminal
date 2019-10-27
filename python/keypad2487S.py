@@ -50,6 +50,7 @@ class Flags1MsgHandler(MsgHandler):
 		MsgHandler.__init__(self, name)
 	def processMsg(self, msg):
 		tmp = msg.getByte("command2") & 0xFF
+		out(self.name + " = " + format(tmp, '08b'))
 		f = ""
 		f +=  "Plock ON|"  if (tmp & (0x1 << 0)) else "Plock OFF|"
 		f +=  "LED on TX ON|" if (tmp & (0x1 << 1)) else "LED on TX OFF|"
@@ -66,7 +67,7 @@ class Flags2MsgHandler(MsgHandler):
 		MsgHandler.__init__(self, name)
 	def processMsg(self, msg):
 		tmp = msg.getByte("command2") & 0xFF
-		out(self.name + " = " + format(tmp, '02d'))
+		out(self.name + " = " + format(tmp, '08b'))
 		f = ""
 		f +=  "TenD ON|"  if (tmp & (0x1 << 0)) else "TenD OFF|"
 		f +=  "NX10Flag ON|" if (tmp & (0x1 << 1)) else "NX10Flag OFF|"
@@ -107,15 +108,11 @@ class Keypad2487S(Switch):
 	def __init__(self, name, addr):
 		Switch.__init__(self, name, addr)
 
-	def getext(self):
-		self.querier.setMsgHandler(ExtMsgHandler("getext"))
-		self.querier.queryext(0x2e, 0x00, [])
-
 	def readFlags1(self):
 		"""readFlags1()
 		read plock/led/resum/beep etc flags"""
 		self.querier.setMsgHandler(Flags1MsgHandler("read flags1"))
-		self.querier.querysd(0x1f, 0x01)
+		self.querier.querysd(0x1f, 0x00)
 
 	def readFlags2(self):
 		"""readFlags2()
@@ -141,12 +138,58 @@ class Keypad2487S(Switch):
 		self.querier.setMsgHandler(CountMsgHandler("database delta flag"))
 		self.querier.querysd(0x1f, 0x01)
 
+	def setOpFlags(self, cmd):
+		"""setOpFlags(cmd)
+	        set operating flags commands
+    00 Programming lock On
+    01 Programming lock off
+    02 LED on with Insteon TX (LED in Light pipe disabled so this command has no effect)
+    03 LED off with Insteon TX
+    04 Resume Dim On
+    05 Resume Dim Off
+    06 8 key for Keypad Loadsense off for OutletD
+    07 6 key for Keypad or Loadsense On for OUtletD
+    08 Led Backlight Off
+    09 Led Backlight On
+    0A KeyBeep On
+    0B KeyBeep Off
+    0C Rf Off ... as an originator, will still hop messages
+    0D Rf On
+    0E Insteon Off
+    0F Insteon On ... will go back to on every power cycle
+    10 TenDflag On turns on App retries read out of database and cu error report
+    11 TenDflag Off
+    12 X10Offflag On Disables all X10 rx and tx
+    13 X10Offflag Off
+    14 Error Blink Off
+    15 Error Blink On
+    16 Cleanup Report is Off
+    17 Cleanup Report is On
+    ...
+    1A Detach Load Off
+    1B Detach Load (See Detach Load Notes Below)
+    1C Start Hops of last Rx ACK (SmartHops)
+    1D Start Hops of 1"""
+		self.querier.setMsgHandler(DefaultMsgHandler("set operating flags"))
+		self.querier.queryext(0x20, cmd, [])
+
 	def getLEDStatus(self):
 		"""getLEDStatus()
 		get current led status """
 		self.querier.setMsgHandler(LEDStatusMsgHandler("led level"))
 		self.querier.querysd(0x19, 0x01)
 
+	def setOnMask(self, group = 0, mask = 0):
+		"""setOnMask(group/button = 0, mask = 0)
+		set on mask of device"""
+		self.querier.setMsgHandler(DefaultMsgHandler("set on mask"))
+		self.querier.queryext(0x2e, 0x00, [group, 0x02, mask]);
+
+	def setOffMask(self, group = 0, mask = 0):
+		"""setOffMask(group/button = 0, mask = 0)
+		set off mask of device"""
+		self.querier.setMsgHandler(DefaultMsgHandler("set off mask"))
+		self.querier.queryext(0x2e, 0x00, [group, 0x03, mask]);
 #
 #   convenience functions for database manipulation
 #

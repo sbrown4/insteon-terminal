@@ -146,9 +146,10 @@ def help(obj = None):
 			if len(docList) == 0:
 				return
 			maxMethodLen = max([len(doc.split(sep)[0]) for doc in docList])
+                        indent = "\n" + " " * (maxMethodLen + 2)
 			iofun.out("\n".join(["%s %s" %
 								 (doc.split(sep)[0].ljust(maxMethodLen + 1),
-								  " ".join(doc.split(sep)[1:]).strip())
+								  indent.join(doc.split(sep)[1:]).strip())
 								 for doc in docList]))
 	else:
 		out("-------Welcome to the Insteon Terminal-------")
